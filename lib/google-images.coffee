@@ -1,5 +1,6 @@
 request = require 'request'
 fs = require 'fs'
+querystring = require 'querystring'
 
 module.exports=
 	search: (query, options) ->
@@ -15,8 +16,21 @@ module.exports=
 		
 		options.page = 0 if not options.page?
 		
-		request "http://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=#{ query.replace(/\s/g, '+') }&start=#{ options.page }", (err, res, body) ->
-			items = JSON.parse(body).responseData.results
+		baseUrl = "http://ajax.googleapis.com/ajax/services/search/images"
+		queryParams =
+			v: '1.0'
+			q: query
+			start: options.page
+		for key, val of options.params
+			queryParams[key] = val
+		url = [baseUrl, querystring.stringify(queryParams)].join '?'
+		request url, (err, res, body) ->
+			if err
+				return callback err
+			jsonBody = JSON.parse body
+			if jsonBody.responseData is null
+				return callback 'responseData null'
+			items = jsonBody.responseData.results
 			images = []
 			for item in items
 				images.push
